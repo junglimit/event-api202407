@@ -29,6 +29,11 @@ public class EventUserService {
     // 이메일 중복확인 처리
     public boolean checkEmailDuplicate(String email) {
 
+//        EventUser user = EventUser.builder()
+//                .email("abc@def.com" + (int) (Math.random() * 10))
+//                .build();
+//        eventUserRepository.save(user);
+
         boolean exists = eventUserRepository.existsByEmail(email);
         log.info("Checking email {} is duplicate : {}", email, exists);
         return exists;
