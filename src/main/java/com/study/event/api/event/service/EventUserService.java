@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,24 +32,23 @@ public class EventUserService {
     // 이메일 전송 객체
     private final JavaMailSender mailSender;
 
+    // 패스워드 암호화 객체
+    private final PasswordEncoder encoder;
+
+
     // 이메일 중복확인 처리
     public boolean checkEmailDuplicate(String email) {
-
-//        EventUser user = EventUser.builder()
-//                .email("abc@def.com" + (int) (Math.random() * 10))
-//                .build();
-//        eventUserRepository.save(user);
 
         boolean exists = eventUserRepository.existsByEmail(email);
         log.info("Checking email {} is duplicate : {}", email, exists);
 
-        // 일련의 후속 처리 (데이터베이스 처리, 이메일 보내기)
-        if(!exists) processSignUp(email);
+        // 일련의 후속 처리 (데이터베이스 처리, 이메일 보내는 것...)
+        if (!exists) processSignUp(email);
 
         return exists;
     }
 
-    private void processSignUp(String email) {
+    public void processSignUp(String email) {
 
         // 1. 임시 회원가입
         EventUser newEventUser = EventUser
@@ -59,6 +59,7 @@ public class EventUserService {
         EventUser savedUser = eventUserRepository.save(newEventUser);
 
         generateAndSendCode(email, savedUser);
+
     }
 
     private void generateAndSendCode(String email, EventUser eventUser) {
@@ -67,9 +68,9 @@ public class EventUserService {
 
         // 3. 인증 코드 정보를 데이터베이스에 저장
         EmailVerification verification = EmailVerification.builder()
-                .verificationCode(code) // 인증코드
-                .expiryDate(LocalDateTime.now().plusMinutes(5)) // 만료 시간(5분 뒤)
-                .eventUser(eventUser) // FK (JPA 에서는 ID만 주는게 아니고 엔터티 통으로 주면 알아서 빼서 씀)
+                .verificationCode(code) // 인증 코드
+                .expiryDate(LocalDateTime.now().plusMinutes(5)) // 만료 시간 (5분 뒤)
+                .eventUser(eventUser) // FK
                 .build();
 
         emailVerificationRepository.save(verification);
@@ -107,7 +108,6 @@ public class EventUserService {
 
             return code;
 
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -122,9 +122,10 @@ public class EventUserService {
     public boolean isMatchCode(String email, String code) {
 
         // 이메일을 통해 회원정보를 탐색
-        EventUser eventUser = eventUserRepository.findByEmail(email).orElse(null);
+        EventUser eventUser = eventUserRepository.findByEmail(email)
+                .orElse(null);
 
-        if(eventUser != null) {
+        if (eventUser != null) {
             // 인증코드가 있는지 탐색
             EmailVerification ev = emailVerificationRepository.findByEventUser(eventUser).orElse(null);
 
@@ -134,27 +135,22 @@ public class EventUserService {
                             && ev.getExpiryDate().isAfter(LocalDateTime.now())
                             && code.equals(ev.getVerificationCode())
             ) {
-                // 이메일 인증여부 true 로 수정
+                // 이메일 인증여부 true로 수정
                 eventUser.setEmailVerified(true);
-                eventUserRepository.save(eventUser);
+                eventUserRepository.save(eventUser); // UPDATE
 
                 // 인증코드 데이터베이스에서 삭제
                 emailVerificationRepository.delete(ev);
-
                 return true;
-            } else { // 인증코드가 틀렸거나 만료된 경우
-
+            } else {  // 인증코드가 틀렸거나 만료된 경우
                 // 인증코드 재발송
-
-                // 1. 원래 인증 코드 삭제
+                // 원래 인증 코드 삭제
                 emailVerificationRepository.delete(ev);
 
-                // 2. 새 인증코드 발급 이메일 재전송
-                // 3. 데이터 베이스에 새 인증코드 저장
+                // 새인증코드 발급 이메일 재전송
+                // 데이터베이스에 새 인증코드 저장
                 generateAndSendCode(email, eventUser);
-
                 return false;
-
             }
 
         }
@@ -165,13 +161,17 @@ public class EventUserService {
     public void confirmSignUp(EventUserSaveDto dto) {
 
         // 기존 회원 정보 조회
-        EventUser foundUser = eventUserRepository.findByEmail(dto.getEmail()).orElseThrow(
-                () -> new RuntimeException("회원 정보가 존재하지 않습니다.") // 예외처리
-        );
+        EventUser foundUser = eventUserRepository
+                .findByEmail(dto.getEmail())
+                .orElseThrow(
+                        () -> new RuntimeException("회원 정보가 존재하지 않습니다.")
+                );
 
         // 데이터 반영 (패스워드, 가입시간)
-        foundUser.confirm(dto.getPassword());
+        String password = dto.getPassword();
+        String encodedPassword = encoder.encode(password); // 암호화
+
+        foundUser.confirm(encodedPassword);
         eventUserRepository.save(foundUser);
     }
 }
-
