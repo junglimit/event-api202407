@@ -1,10 +1,12 @@
 package com.study.event.api.event.service;
 
 import com.study.event.api.event.dto.request.EventUserSaveDto;
+import com.study.event.api.event.dto.request.LoginRequestDto;
 import com.study.event.api.event.entity.EmailVerification;
 import com.study.event.api.event.entity.EventUser;
 import com.study.event.api.event.repository.EmailVerificationRepository;
 import com.study.event.api.event.repository.EventUserRepository;
+import com.study.event.api.exception.LoginFailException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -197,4 +199,35 @@ public class EventUserService {
         foundUser.confirm(encodedPassword);
         eventUserRepository.save(foundUser);
     }
+
+
+    // 회원 인증 처리 (login)
+    public void authenticate(final LoginRequestDto dto) {
+
+        // 이메일을 통해 회원정보 조회
+        EventUser eventUser = eventUserRepository.findByEmail(dto.getEmail())
+                .orElseThrow(
+                        () -> new LoginFailException("가입된 회원이 아닙니다.")
+                );
+
+        // 이메일 인증을 안했거나 패스워드를 설정하지 않은 회원
+        if (!eventUser.isEmailVerified() || eventUser.getPassword() == null) {
+            throw new LoginFailException("회원가입이 중단된 회원입니다. 다시 가입해주세요.");
+
+        }
+
+        // 패스워드 검증
+        String inputPassword = dto.getPassword();
+        String encodedPassword = eventUser.getPassword();
+
+        if (!encoder.matches(inputPassword, encodedPassword)) {
+            throw new LoginFailException("비밀번호가 틀렸습니다.");
+        }
+
+        // 로그인 성공
+        // 인증정보를 관리
+
+    }
+
+
 }
