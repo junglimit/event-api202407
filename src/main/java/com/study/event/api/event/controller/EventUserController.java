@@ -2,6 +2,7 @@ package com.study.event.api.event.controller;
 
 import com.study.event.api.event.dto.request.EventUserSaveDto;
 import com.study.event.api.event.dto.request.LoginRequestDto;
+import com.study.event.api.event.dto.response.LoginResponseDto;
 import com.study.event.api.event.service.EventUserService;
 import com.study.event.api.exception.LoginFailException;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController // react 사용하면 무조건 RestController 임
+import java.io.IOException;
+import java.sql.SQLException;
+
+@RestController
 @RequestMapping("/auth")
 @Slf4j
 @RequiredArgsConstructor
@@ -28,38 +32,41 @@ public class EventUserController {
     // 인증 코드 검증 API
     @GetMapping("/code")
     public ResponseEntity<?> verifyCode(String email, String code) {
-        log.info ("{}'s verify code is [ {} ], email, code");
 
-        boolean isMatch = eventUserService.isMatchCode(email,code);
+        log.info("{}'s verify code is [ {} ]", email, code);
+        boolean isMatch = eventUserService.isMatchCode(email, code);
 
         return ResponseEntity.ok().body(isMatch);
     }
 
     // 회원가입 마무리 처리
     @PostMapping("/join")
-    public ResponseEntity<?> join (@RequestBody EventUserSaveDto dto) {
+    public ResponseEntity<?> join(@RequestBody EventUserSaveDto dto) {
 
-        log.info("save User Info - {", dto);
+        log.info("save User Info - {}", dto);
+
         try {
             eventUserService.confirmSignUp(dto);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage()); // Service 에서 Throw 한거 여기서 캐치하기
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
 
         return ResponseEntity.ok().body("saved success");
     }
 
+
     @PostMapping("/sign-in")
-    public ResponseEntity<?> signIn (@RequestBody LoginRequestDto dto) {
+    public ResponseEntity<?> signIn(@RequestBody LoginRequestDto dto) {
 
         try {
-            eventUserService.authenticate(dto);
-            return ResponseEntity.ok().body("login success");
-        } catch (LoginFailException e) { // 내가 커스텀한 익셉션
+            LoginResponseDto responseDto = eventUserService.authenticate(dto);
+            return ResponseEntity.ok().body(responseDto);
+        } catch (LoginFailException e) {
             // 서비스에서 예외발생 (로그인 실패)
             String errorMessage = e.getMessage();
             return ResponseEntity.status(422).body(errorMessage);
         }
+
     }
 
 
