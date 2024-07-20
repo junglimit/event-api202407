@@ -3,6 +3,8 @@ package com.study.event.api.config;
 import com.study.event.api.auth.filter.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,6 +19,8 @@ import org.springframework.web.filter.CorsFilter;
 // 권한처리
 // OAuth2 - SNS 로그인
 @EnableWebSecurity
+// 컨트롤러에서 사전, 사후에 권한 정보를 캐치해서 막을건지 설정
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -44,6 +48,8 @@ public class SecurityConfig {
                 .and()
 
                 .authorizeRequests() // 요청별 인가 설정
+                .antMatchers(HttpMethod.DELETE,"/events/*").hasAuthority("ADMIN")
+
                 .antMatchers("/", "/auth/**").permitAll() // 인증(로그인) 없이도 들어갈 수 있는 경로 설정
                 // 나머지는 전부 인증(로그인) 후 들어갈 수 있음
                 .anyRequest().authenticated(); // 인가 설정 on

@@ -7,6 +7,7 @@ import com.study.event.api.event.service.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,6 +59,7 @@ public class EventController {
     }
 
     // 단일 조회 요청
+    @PreAuthorize("hasAuthority('PREMIUM') or hasAuthority('ADMIN')") // 사전에 권한 검사하기
     @GetMapping("/{eventId}")
     public ResponseEntity<?> getEvent(@PathVariable Long eventId) {
 
@@ -73,6 +75,7 @@ public class EventController {
     }
 
     // 삭제 요청
+
     @DeleteMapping("/{eventId}")
     public ResponseEntity<?> delete(@PathVariable Long eventId) {
 
