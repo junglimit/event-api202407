@@ -6,6 +6,7 @@ import com.study.event.api.event.dto.response.EventDetailDto;
 import com.study.event.api.event.dto.response.EventOneDto;
 import com.study.event.api.event.entity.Event;
 import com.study.event.api.event.entity.EventUser;
+import com.study.event.api.event.entity.Role;
 import com.study.event.api.event.repository.EventRepository;
 import com.study.event.api.event.repository.EventUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,22 +36,17 @@ public class EventService {
 
         Pageable pageable = PageRequest.of(pageNo - 1, 4);
 
-//        Page<Event> eventsPage = eventRepository.findEvents(pageable, sort, userId);
-
-        EventUser eventUser = eventUserRepository.findById(userId).orElseThrow();
-
-        List<Event> events = eventUser.getEventList();
+        Page<Event> eventsPage = eventRepository.findEvents(pageable, sort, userId);
 
         // 이벤트 목록
-//        List<Event> events = eventsPage.getContent();
+        List<Event> events = eventsPage.getContent();
 
         List<EventDetailDto> eventDtoList = events
                 .stream().map(EventDetailDto::new)
                 .collect(Collectors.toList());
 
         // 총 이벤트 개수
-//        long totalElements = eventsPage.getTotalElements();
-        long totalElements = 100;
+        long totalElements = eventsPage.getTotalElements();
 
         Map<String, Object> map = new HashMap<>();
         map.put("events", eventDtoList);
@@ -62,8 +58,17 @@ public class EventService {
     // 이벤트 등록
     public void saveEvent(EventSaveDto dto, String userId) {
 
-        // 회원 정보 조회
+
+        // 로그인한 회원 정보 조회
         EventUser eventUser = eventUserRepository.findById(userId).orElseThrow();
+
+        // 권한에 따른 글쓰기 제한
+        if (
+                eventUser.getRole() == Role.COMMON
+                        && eventUser.getEventList().size() >= 4
+        ) {
+            throw new IllegalStateException("일반 회원은 더이상 이벤트를 등록할 수 없습니다.");
+        }
 
         Event newEvent = dto.toEntity();
         newEvent.setEventUser(eventUser);
