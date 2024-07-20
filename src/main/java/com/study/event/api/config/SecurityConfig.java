@@ -50,6 +50,7 @@ public class SecurityConfig {
                 .authorizeRequests() // 요청별 인가 설정
                 .antMatchers(HttpMethod.DELETE,"/events/*").hasAuthority("ADMIN")
 
+                .antMatchers(HttpMethod.PUT, "auth/promote").hasAuthority("COMMON")
                 .antMatchers("/", "/auth/**").permitAll() // 인증(로그인) 없이도 들어갈 수 있는 경로 설정
                 // 나머지는 전부 인증(로그인) 후 들어갈 수 있음
                 .anyRequest().authenticated(); // 인가 설정 on

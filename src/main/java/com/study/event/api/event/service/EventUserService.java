@@ -244,5 +244,22 @@ public class EventUserService {
 
     }
 
+    // 등업 처리
+    public LoginResponseDto promoteToPremium(String userId) {
+        // 회원 탐색
+        EventUser eventUser = eventUserRepository.findById(userId).orElseThrow();
 
+        // 등급 변경 (DB)
+        eventUser.promoteToPremium();
+        EventUser promotedUser = eventUserRepository.save(eventUser);
+
+        // 토큰 재발급 (권한 바꿔서)
+        String token = tokenProvider.createToken(promotedUser); // 변경된 이후의 유저 넣기
+
+        return LoginResponseDto.builder()
+                .token(token)
+                .role(promotedUser.getRole().toString())
+                .email(promotedUser.getEmail())
+                .build();
+    }
 }
