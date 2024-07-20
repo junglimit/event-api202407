@@ -37,7 +37,7 @@ public class EventController {
         Map<String, Object> events = eventService.getEvents(pageNo, sort, userId);
 
         // 의도적으로 2초간의 로딩을 설정
-        Thread.sleep(2000);
+//        Thread.sleep(2000);
 
         return ResponseEntity.ok().body(events);
     }
