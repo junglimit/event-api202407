@@ -18,7 +18,6 @@ public class CrossOriginConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-
         registry
                 .addMapping("/**") // 어떤 URL 요청에서
                 .allowedOrigins(urls) // 어떤 클라이언트를
